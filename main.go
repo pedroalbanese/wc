@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -15,31 +16,39 @@ func main() {
 
 	totalLines, totalWords, totalBytes := 0, 0, 0
 
-	for _, fileName := range os.Args[1:] {
-		fileData, err := ioutil.ReadFile(fileName)
+	for _, pattern := range os.Args[1:] {
+		files, err := filepath.Glob(pattern)
 		if err != nil {
-			fmt.Printf("Error reading %s: %s\n", fileName, err)
+			fmt.Printf("Error expanding pattern %s: %s\n", pattern, err)
 			continue
 		}
 
-		content := string(fileData)
-		lines := strings.Split(content, "\n")
-		words := 0
-		bytes := len(fileData)
+		for _, fileName := range files {
+			fileData, err := ioutil.ReadFile(fileName)
+			if err != nil {
+				fmt.Printf("Error reading %s: %s\n", fileName, err)
+				continue
+			}
 
-		if len(lines) > 0 && len(lines[len(lines)-1]) == 0 {
-			lines = lines[:len(lines)-1]
+			content := string(fileData)
+			lines := strings.Split(content, "\n")
+			words := 0
+			bytes := len(fileData)
+
+			if len(lines) > 0 && len(lines[len(lines)-1]) == 0 {
+				lines = lines[:len(lines)-1]
+			}
+
+			for _, line := range lines {
+				words += len(strings.Fields(line))
+			}
+
+			fmt.Printf("%10d%10d%10d %s\n", len(lines), words, bytes, fileName)
+
+			totalLines += len(lines)
+			totalWords += words
+			totalBytes += bytes
 		}
-
-		for _, line := range lines {
-			words += len(strings.Fields(line))
-		}
-
-		fmt.Printf("%10d%10d%10d %s\n", len(lines), words, bytes, fileName)
-
-		totalLines += len(lines)
-		totalWords += words
-		totalBytes += bytes
 	}
 
 	if len(os.Args) > 2 {
